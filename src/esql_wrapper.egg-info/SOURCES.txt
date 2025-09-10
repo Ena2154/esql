@@ -1,0 +1,15 @@
+README.md
+pyproject.toml
+src/esql/__init__.py
+src/esql/version.py
+src/esql/versions/esql_v1_0_0/__init__.py
+src/esql/versions/esql_v1_0_0/boot.py
+src/esql/versions/esql_v1_0_0/main.py
+src/esql/versions/esql_v1_1_0/__init__.py
+src/esql/versions/esql_v1_1_0/boot.py
+src/esql/versions/esql_v1_1_0/libs.py
+src/esql/versions/esql_v1_1_0/main.py
+src/esql_wrapper.egg-info/PKG-INFO
+src/esql_wrapper.egg-info/SOURCES.txt
+src/esql_wrapper.egg-info/dependency_links.txt
+src/esql_wrapper.egg-info/top_level.txt

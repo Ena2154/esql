@@ -1,0 +1,329 @@
+ディレクトリ構造
+esql/
+├── src/esql/versions/
+│   		├── esql_v1_0_0/
+│   		│   ├── __init__.py
+│   		│   ├── boot.py
+│   		│   └── main.py
+│   		└── esql_v1_1_0/
+│      		├── __init__.py
+│      		├── boot.py
+│      		├── libs.py
+│       		└── main.py
+├──dist/
+├── db/
+│   └─ (空のディレクトリ)
+├── __init__.py
+├── README.md
+└── version.py
+各ファイルのソースコード
+esql/__init__.py (トップレベル)
+Python
+
+# esql/__init__.py
+
+from . import version as ver
+
+# --- 各バージョンのモジュールをインポート ---
+from .versions.esql_v1_1_0 import boot as boot_v1_1, main as main_v1_1
+from .versions.esql_v1_0_0 import boot as boot_v1_0, main as main_v1_0
+
+# --- ファクトリ関数（バージョンに応じて実体を切り替える） ---
+
+def run(db_name, callback, message=False, use_generator=False, query_name: str = "", version=None):
+    """
+    高レベルAPI `run`。バージョンと処理名を指定して実行できます。
+    """
+    if version is None:
+        version = ver.LATEST_VERSION
+
+    if version == '1.1.0':
+        return boot_v1_1.run(db_name, callback, message, use_generator, query_name)
+    elif version == '1.0.0':
+        if query_name:
+            print(f"警告: 'query_name' 引数はバージョン {version} ではサポートされていません。")
+        return boot_v1_0.run(db_name, callback, message)
+    else:
+        raise ValueError(f"指定されたバージョン '{version}' は利用できません。")
+
+def Connection(connect="sample", message=False, use_generator=False, version=None):
+    """
+    低レベルAPI `Connection`。バージョンを指定してインスタンスを生成できます。
+    """
+    if version is None:
+        version = ver.LATEST_VERSION
+    
+    if version == '1.1.0':
+        return main_v1_1.MainCls(connect, message, use_generator)
+    elif version == '1.0.0':
+        return main_v1_0.MainCls(connect, message)
+    else:
+        raise ValueError(f"指定されたバージョン '{version}' は利用できません。")
+esql/version.py
+Python
+
+# esql/version.py
+
+# 利用可能なバージョンをリストで管理
+AVAILABLE_VERSIONS = ['1.0.0', '1.1.0']
+
+# デフォルトで使われる最新バージョンを指定
+LATEST_VERSION = '1.1.0'
+esql/README.md
+Markdown
+
+# esql
+
+![Python Version](https://img.shields.io/badge/python-3.8%2B-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
+
+`esql`は、PythonでSQLiteをよりシンプル、安全、そして直感的に扱うためのラッパーライブラリです。定型的なコードをカプセル化することで、開発者はデータベース操作の本質的なロジックに集中でき、SQLインジェクションのような一般的なミスを未然に防ぎます。
+
+## 主な機能
+
+- **高レベルAPI (`run`)**: `try...with...except`といった定型処理を完全に隠蔽します。
+- **安全なパラメータ処理**: `execute_with_params()`により、SQLインジェクションを確実に防ぎます。
+- **バッチ処理**: `execute_batch()`により、大量の`INSERT`や`UPDATE`を高速に実行できます。
+- **多様な実行方法**: 単純なSQL文、複数文のスクリプト、`.sql`ファイルからの読み込みに対応しています。
+- **ジェネレータ対応**: `use_generator=True`オプションにより、メモリ効率を向上させます。
+- **動的プレースホルダ生成**: `make_placeholder()`により、`INSERT`文のプレースホルダを自動生成します。
+- **バージョン管理**: パッケージのバージョンを指定して、過去のAPIとの後方互換性を保ちながら利用できます。
+
+## インストール
+
+プロジェクトのルートディレクトリに `esql` パッケージフォルダをコピーしてください。
+
+## クイックスタート
+
+```python
+import esql
+
+def setup_and_show(db):
+    db.execute("CREATE TABLE IF NOT EXISTS users (id INTEGER, name TEXT); DELETE FROM users;")
+    
+    insert_sql = "INSERT INTO users (id, name) VALUES (?, ?)"
+    users_data = [(1, 'Alice'), (2, 'Bob')]
+    db.execute_batch({insert_sql: users_data})
+    
+    return db.execute("SELECT * FROM users;")
+
+results = esql.run("my_database.db", setup_and_show)
+
+if results:
+    for row in results[0]:
+        print(row)
+ライセンス
+このプロジェクトはMITライセンスです。
+
+
+---
+### バージョン `1.1.0` のファイル
+
+#### `esql/versions/esql_v1_1_0/__init__.py`
+```python
+# esql/versions/esql_v1_1_0/__init__.py
+
+from .main import MainCls as Connection
+from .boot import run
+esql/versions/esql_v1_1_0/boot.py
+Python
+
+# esql/versions/esql_v1_1_0/boot.py
+
+from .main import MainCls
+import sqlite3
+
+def run(db_name: str, callback, message: bool = False, use_generator: bool = False, query_name: str = ""):
+    """
+    データベース操作を安全かつ簡潔に実行するための高レベル関数。
+    """
+    try:
+        with MainCls(connect=db_name, message=message, use_generator=use_generator) as db:
+            return callback(db)
+    except (sqlite3.Error, ValueError, ConnectionError) as e:
+        error_location = f" in '{query_name}'" if query_name else ""
+        print(f"データベース処理中{error_location}にエラーが発生しました: {e}")
+        return None
+esql/versions/esql_v1_1_0/libs.py
+Python
+
+# esql/versions/esql_v1_1_0/libs.py
+
+import sqlite3
+from pathlib import Path
+
+def parseQuery(args: str):
+    queries = args.split(';')
+    for q in queries:
+        cleaned_q = q.strip()
+        if cleaned_q and not cleaned_q.startswith('--') and not cleaned_q.startswith('/*'):
+            yield cleaned_q
+
+def read_sql_from_file(file_path: str) -> str:
+    try:
+        path = Path(file_path)
+        return path.read_text(encoding='utf-8')
+    except FileNotFoundError:
+        raise FileNotFoundError(f"指定されたクエリファイルが見つかりません: {file_path}")
+    except Exception as e:
+        raise IOError(f"クエリファイルの読み込み中にエラーが発生しました: {e}") from e
+
+def execute_queries_list(cursor, query_string: str) -> list:
+    select_results = []
+    last_query = ""
+    try:
+        for q in parseQuery(query_string):
+            last_query = q
+            cursor.execute(q)
+            if cursor.description:
+                select_results.append(cursor.fetchall())
+    except sqlite3.Error as e:
+        raise ValueError(f"SQLの実行に失敗しました。エラー: {e}\n問題のクエリ: '{last_query}'") from e
+    return select_results
+
+def execute_queries_generator(cursor, query_string: str):
+    last_query = ""
+    try:
+        for q in parseQuery(query_string):
+            last_query = q
+            cursor.execute(q)
+            if cursor.description:
+                yield cursor.fetchall()
+    except sqlite3.Error as e:
+        raise ValueError(f"SQLの実行に失敗しました。エラー: {e}\n問題のクエリ: '{last_query}'") from e
+esql/versions/esql_v1_1_0/main.py
+Python
+
+# esql/versions/esql_v1_1_0/main.py
+
+import sqlite3
+from pathlib import Path
+from . import libs
+from typing import Generator, Any, Iterable
+
+class MainCls:
+    def __init__(self, connect: str = "sample", message: bool = False, use_generator: bool = False):
+        base_dir = Path(__file__).parent.parent.parent
+        self.db_path = base_dir / "db" / f"{connect}.db"
+        self.message = message
+        self.use_generator = use_generator
+        self.conn = None
+        self.cursor = None
+
+    def __enter__(self):
+        self.db_path.parent.mkdir(parents=True, exist_ok=True)
+        self.conn = sqlite3.connect(self.db_path)
+        self.cursor = self.conn.cursor()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if self.conn:
+            if exc_type:
+                self.conn.rollback()
+            else:
+                self.conn.commit()
+                if self.message:
+                    print(f"クエリは正常に実行され、変更がコミットされました。")
+            self.conn.close()
+
+    def execute(self, query: str, from_file: bool = False) -> list | None | Generator[list, Any, None]:
+        if not self.cursor:
+            raise ConnectionError("データベースに接続されていません。")
+        query_string = libs.read_sql_from_file(query) if from_file else query
+        if self.use_generator:
+            return libs.execute_queries_generator(self.cursor, query_string)
+        else:
+            results = libs.execute_queries_list(self.cursor, query_string)
+            return results if results else None
+
+    def execute_with_params(self, sql: str, params: Iterable) -> list | None:
+        if not self.cursor:
+            raise ConnectionError("データベースに接続されていません。")
+        try:
+            self.cursor.execute(sql, params)
+            if self.cursor.description:
+                return self.cursor.fetchall()
+            else:
+                return None
+        except sqlite3.Error as e:
+            raise ValueError(f"パラメータ付きSQLの実行に失敗しました。エラー: {e}\nSQL: {sql}\nParams: {params}") from e
+
+    def execute_batch(self, batch_data: dict[str, Iterable[Iterable]]) -> None:
+        if not self.cursor:
+            raise ConnectionError("データベースに接続されていません。")
+        try:
+            for sql, params_list in batch_data.items():
+                self.cursor.executemany(sql, params_list)
+        except sqlite3.Error as e:
+            problem_sql = sql if 'sql' in locals() else "N/A"
+            raise ValueError(f"バッチ処理の実行に失敗しました。エラー: {e}\n問題のSQLの可能性: {problem_sql}") from e
+
+    def make_placeholder(self, table_name: str) -> str:
+        if not self.cursor:
+            raise ConnectionError("データベースに接続されていません。")
+        table_info = self.execute_with_params(f"PRAGMA table_info(?);", (table_name,))
+        if not table_info:
+            raise ValueError(f"テーブル '{table_name}' が見つかりません。")
+        num_columns = len(table_info)
+        if num_columns == 0:
+            raise ValueError(f"テーブル '{table_name}' には列がありません。")
+        placeholders = ", ".join(['?'] * num_columns)
+        return f"({placeholders})"
+バージョン 1.0.0 のファイル
+esql/versions/esql_v1_0_0/__init__.py
+Python
+
+# esql/versions/esql_v1_0_0/__init__.py
+
+from .main import MainCls as Connection
+from .boot import run
+esql/versions/esql_v1_0_0/boot.py
+Python
+
+# esql/versions/esql_v1_0_0/boot.py
+
+from .main import MainCls
+
+def run(db_name, callback, message=False):
+    try:
+        with MainCls(connect=db_name, message=message) as db:
+            return callback(db)
+    except Exception as e:
+        print(f"処理中にエラー: {e}")
+        return None
+esql/versions/esql_v1_0_0/main.py
+Python
+
+# esql/versions/esql_v1_0_0/main.py
+
+import sqlite3
+from pathlib import Path
+
+class MainCls:
+    def __init__(self, connect: str = "sample", message: bool = False):
+        base_dir = Path(__file__).parent.parent.parent
+        self.db_path = base_dir / "db" / f"{connect}.db"
+        self.message = message
+        self.conn = None
+        self.cursor = None
+        
+    def __enter__(self):
+        self.db_path.parent.mkdir(parents=True, exist_ok=True)
+        self.conn = sqlite3.connect(self.db_path)
+        self.cursor = self.conn.cursor()
+        return self
+        
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if self.conn:
+            if exc_type: 
+                self.conn.rollback()
+            else:
+                self.conn.commit()
+                if self.message: print("正常にコミットされました。")
+            self.conn.close()
+            
+    def execute(self, query: str):
+        self.cursor.execute(query)
+        if self.cursor.description:
+            return self.cursor.fetchall()
+        return None

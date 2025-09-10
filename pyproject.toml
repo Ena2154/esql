@@ -1,0 +1,25 @@
+# ビルドシステムに関する標準的な定義
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+# パッケージのメタ情報（名前、バージョン、作者など）を定義
+[project]
+name = "esql-wrapper"  # PyPIに公開する場合を想定し、少しユニークな名前に
+version = "1.1.0"
+authors = [
+  { name="Enamel54", email="kazukikaneta998@gmail.com" },
+]
+description = "A simple, safe, and intuitive wrapper library for SQLite in Python."
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Topic :: Database",
+]
+
+# (オプション) プロジェクトのURLなど
+# [project.urls]
+# "Homepage" = "（もしあればGitHubリポジトリなどのURL）"
