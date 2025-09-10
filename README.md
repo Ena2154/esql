@@ -38,7 +38,7 @@ results = esql.run("my_database.db", setup_and_show)
 if results:
     for row in results[0]:
         print(row)
-
+```
 導入手順
     解凍する
     このフォルダを適当な場所に置く
