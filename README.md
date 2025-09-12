@@ -33,7 +33,7 @@ def setup_and_show(db):
     
     return db.execute("SELECT * FROM users;")
 
-results = esql.run("my_database.db", setup_and_show)
+results = esql.run("my_database", setup_and_show)
 
 if results:
     for row in results[0]:

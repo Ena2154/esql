@@ -3,9 +3,15 @@
 from . import version as ver
 
 # --- 各バージョンのモジュールをインポート ---
-from .versions.esql_v1_1_0 import boot as boot_v1_1, main as main_v1_1
-from .versions.esql_v1_0_0 import boot as boot_v1_0, main as main_v1_0
+from . import version as ver
 
+# --- 各バージョンのモジュールをインポート ---
+from .versions.esql_v1_1_0 import (
+    boot as boot_v1_1, 
+    main as main_v1_1, 
+    transaction as transaction_v1_1 # transactionをインポート
+)
+from .versions.esql_v1_0_0 import boot as boot_v1_0, main as main_v1_0
 # --- ファクトリ関数（バージョンに応じて実体を切り替える） ---
 
 def run(db_name, callback, message=False, use_generator=False, query_name: str = "", version=None, esql_file: bool = True): # esql_file を追加
@@ -34,3 +40,18 @@ def Connection(connect="sample", message=False, use_generator=False, version=Non
         return main_v1_0.MainCls(connect, message, esql_file=esql_file)
     else:
         raise ValueError(f"指定されたバージョン '{version}' は利用できません。")
+    
+def transaction(db_name: str, message: bool = False, use_generator: bool = False, query_name: str = "", version: str = None):
+    """
+    関数をDBトランザクションとして実行するデコレータ。
+    この機能はバージョン1.1.0以降でサポートされます。
+    """
+    if version is None:
+        version = ver.LATEST_VERSION
+
+    if version == '1.1.0':
+        # v1.1.0のtransactionデコレータを返す
+        return transaction_v1_1(db_name, message, use_generator, query_name)
+    else:
+        # サポートしていないバージョンで使おうとした場合はエラーを発生させる
+        raise AttributeError(f"デコレータ機能はバージョン {version} ではサポートされていません。")
